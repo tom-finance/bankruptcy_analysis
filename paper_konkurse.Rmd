@@ -1,0 +1,423 @@
+---
+title: |
+  | \vspace{2cm} \textbf{Konkurse in Südtirol} \vspace{1cm}
+author: | 
+  | \textsc{Thomas Ludwig}
+  | Thomas.Ludwig95@gmail.com
+date: |
+  | `r format(Sys.time(), '%d. %B %Y')` \vspace{1cm}
+output: 
+  pdf_document:
+    number_sections: true
+    fig_caption: true
+urlcolor: blue
+header-includes:
+- \usepackage[german]{babel}
+- \usepackage{xcolor}
+- \usepackage{graphicx}
+- \usepackage{hyperref}
+- \usepackage{booktabs}
+- \usepackage{longtable}
+- \usepackage{array}
+- \usepackage{multirow}
+- \usepackage{wrapfig}
+- \usepackage{float}
+- \usepackage{colortbl}
+- \usepackage{pdflscape}
+- \usepackage{tabu}
+- \usepackage{threeparttable}
+- \usepackage{threeparttablex}
+- \usepackage[normalem]{ulem}
+- \usepackage{makecell}
+- \usepackage[hang, small, bf, margin=20pt, tableposition=top]{caption}
+- \setlength{\abovecaptionskip}{0pt}
+fontsize: 12pt
+spacing: double
+geometry: margin=1in
+documentclass: "article"
+abstract: |
+  In diesem Artikel werden jährliche Daten zu Konkursfällen in Südtirol analysiert.
+  Analysierte Daten aus den Jahren 2007–2019 zeigen, dass das aktuelle Niveau an
+  jährlichen Konkursen auf einem sehr tiefen Niveau ist. Zusätzlich wird gezeigt, 
+  wie sich die Dauer des Konkursabschlusses in den letzten Jahren verlängerhat. 
+  Das Niveau hat sich in den letzten Jahren stabilisiert.
+---
+
+\newpage
+
+\tableofcontents
+
+\listoffigures
+
+\listoftables
+
+\newpage
+
+```{r setup, include=FALSE}
+
+# in this section we define the setup for the report
+
+# define global knitr options
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.pos = 'H') # needed to hold plot position with captions
+knitr::opts_chunk$set(fig.width=5.5, fig.height=3.5) # define global plot dimensions
+
+# used packages for analysis
+library(knitr) # tables
+library(kableExtra) # nice tables
+library(dplyr) # data manipulation
+library(ggplot2) # make violin plot
+library(Hmisc) # make violin plot using ggplot2
+
+# read prepared dataset into program - data is coming from web scraping skript!
+data_final <- read.csv2("daten_konkurse.csv", stringsAsFactors = F)
+
+```
+
+# Einleitung
+
+In diesem Artikel werden Daten aus einer öffentlich zugänglichen Internetseite
+mit Konkursfällen aus Südtirol analysiert. Ziel dieser Analyse ist es zu zeigen,
+wie sich die Konkursfälle im Zeitablauf entwickelt und verändert haben. Zusätzlich
+soll gezeigt werden, wie sich die Dauer der Konkursabwicklung entwickelt hat, wobei
+dieser Aspekt auch im Hinblick zu den beteiligten Richtern und Konkursverwaltern
+untersucht wird.
+
+# Daten
+
+Die Daten für diesen Artikel wurden von der Website <http://www.fallimentibolzano.com>
+mittels eines automatisierten Prozesses heruntergeladen. Dabei wurde das R Paket
+*rvest*^[<https://cran.r-project.org/web/packages/rvest/rvest.pdf>] verwendet, um die Daten im *HTML* Format für alle verfügbaren Jahre auszulesen
+und zu verarbeiten.    
+
+Das Skript für den Download der Daten wurde am 29. Dezember 2019 ausgeführt, alle
+potentiellen späteren Einträge für das Jahr 2019 werden in den verwendeten Daten
+nicht verwendet. Ingsesamt umfasst die Datenquelle `r nrow(data_final)` Einträge mit `r ncol(data_final)`
+Merkmalen. Die wichtigesten Merkmale in den Orginaldaten setzen sich wie folgt zusammen.
+
+```{r, echo=F}
+
+kable(head(data_final[, c(1,3,4)], 5), "latex", booktabs = T, caption = "Orginalevariablen für Analyse 1") %>%
+  kable_styling(position = "center", latex_options = "hold_position")
+
+kable(head(data_final[, c(6,7,11, 12)], 5), "latex", booktabs = T, caption = "Orginalvariablen für Analyse 2") %>%
+  kable_styling(position = "center", latex_options = "hold_position")
+
+```
+
+\newpage
+
+Folgende Merkmale wurden aus den Orginaldatensatz heraus berechnet und dienen als
+wichtige Grundlage für die folgende Analyse.
+
++ *year_dich*: Jahr des Konkursantrages
++ *year_close*: Jahr des Konkursabschlusses
++ *close_time_days*: Dauer vom Tag des Konkursantrages bis zum Konkursabschluss in Tagen
++ *close_time_years*: Dauer vom Tag des Konkursantrages bis zum Konkursabschluss in Jahren
+
+```{r, echo=F}
+
+kable(head(data_final[, 14:17], 5), "latex", booktabs = T, caption = "Berechnete Variablen für Analyse") %>%
+  kable_styling(position = "center", latex_options = "hold_position")
+
+
+```
+
+
+\newpage
+
+# Analyse Konkursdaten
+
+Im ersten Teil werden die jährlichen Konkurseröffnungen und Konkursschließungen
+am Landesgericht Bozen analysiert.
+
+## Jährliche Konkurseröffnungen
+
+In der folgenden Tabelle werden die jährlichen Konkurseröffnungen der Jahre
+`r min(data_final$year_dich)`--`r max(data_final$year_dich)` dargestellt.
+
+```{r, echo=FALSE}
+dich_year <- data_final %>% 
+  group_by(year_dich) %>% 
+  tally() # create concise summary table
+
+kable(t(dich_year[1:6,]), "latex", booktabs = T, caption = "Konkurseröffnungen 2007-2019") %>%
+  kable_styling(position = "center", latex_options = "hold_position")
+
+kable(t(dich_year[7:13,]), "latex", booktabs = T, caption = "Konkurseröffnungen 2007-2019") %>%
+  kable_styling(position = "center", latex_options = "hold_position")
+
+```
+
+
+Abbildung \ref{anzahl} visualisiert die Daten und zeigt, dass im Jahr 2019 die Anzahl der
+Konkurseröffnungen auf einem niedrigen Niveau ist.
+
+
+```{r, echo=FALSE, fig.align="center", fig.cap="\\label{anzahl}Anzahl Konkurseröffnungen"}
+par(mar = c(3.1, 4.1, 3.1, 2.1))
+plot(dich_year$n ~ dich_year$year_dich, type = "b", pch = 1, col = "steelblue", lwd = 2,
+     ylab= "Anzahl Konkurse", xlab = "Jahr")
+grid()
+abline(h = min(dich_year$n), col = "orange", lty = 2)
+abline(h = max(dich_year$n), col = "orange", lty = 2)
+
+```
+
+
+## Änderung Konkurseröffnungen im Zeitablauf
+
+Abbildung \ref{aenderung} zeigt die absoluten jährlichen Änderungen an Konkurseröffnungen
+für die Jahre `r min(data_final$year_dich)` -- `r max(data_final$year_dich)`.
+
+```{r, echo=FALSE, fig.align="center", fig.cap="\\label{aenderung}Änderung Konkurseröffnungen"}
+par(mar = c(3.1, 4.1, 3.1, 2.1))
+
+plot(diff(dich_year$n, 1) ~ dich_year$year_dich[-1], type = "b", pch = 1, col = "steelblue", lwd = 2,
+     xlab = "Jahr", ylab = "Änderung Konkurseröffnungen absolut")
+grid()
+abline(h = 0, col = "orange")
+abline(h = min(diff(dich_year$n, 1)), col = "orange", lty = 2)
+abline(h = max(diff(dich_year$n, 1)), col = "orange", lty = 2)
+
+# calculate YoY change in %
+delta_yoy_perc <- diff(dich_year$n)/dich_year$n[-length(dich_year$n)]*100
+
+```
+
+In der folgenden Tabelle werden die jährlichen Änderungen der Anzahl an Konkurseröffnungen sowohl
+in absoluten als auch in relativen Werten berechnet.
+
+```{r, echo=FALSE}
+
+delta_open <- data.frame(Jahr = dich_year$year_dich[-1],
+                         `Änderung absolut` = diff(dich_year$n, 1),
+                         `Änderung in %` = delta_yoy_perc,
+                         stringsAsFactors = F,
+                         check.names = FALSE)
+
+kable(delta_open, "latex", booktabs = T, caption = "Änderung Konkurseröffnungen", digits = 2) %>%
+  kable_styling(position = "center", latex_options = "hold_position")
+
+```
+
+
+## Jährliche Konkursschließungen
+
+In der folgenden Tabelle werden die jährlichen Konkursschließungen der Jahre
+2007 - 2019 dargestellt.
+
+```{r, echo=FALSE}
+close_year <- data_final %>%
+  group_by(year_close) %>% 
+  filter(!is.na(year_close)) %>% # exclude positions which are not finished!
+  tally()
+
+kable(t(close_year), "latex", booktabs = T, caption = "Konkursschliessungen 2007-2019") %>%
+  kable_styling(position = "center", latex_options = "hold_position")
+
+```
+
+
+
+```{r, echo=FALSE, fig.align="center", fig.cap="\\label{schliessungen}Anzahl Konkursschließungen"}
+par(mar = c(3.1, 4.1, 3.1, 2.1))
+plot(close_year$n ~ close_year$year_close, type = "b", pch = 1, col = "steelblue", lwd = 2,
+     xlab = "Jahr", ylab = "Anzahl Konkursschliessungen")
+grid()
+abline(h = min(close_year$n), col = "orange", lty = 2)
+abline(h = max(close_year$n), col = "orange", lty = 2)
+
+```
+
+Abbildung \ref{schliessungen} visualisiert die Daten und zeigt, dass im Jahr 2019 die Anzahl der
+Konkurseröffnungen auf einem niedrigen Niveau ist.
+
+\newpage
+
+# Analyse Abschlusszeiten
+
+Bei abgeschlossenen Konkursfällen ist das Abschlussdatum in den Daten enthalten.
+Wir verwenden dieses um die Abschlusszeit für einen Konkursfall für alle abgeschlossenen
+Konkursfälle auszurechnen. Zur besseren Darstellung verwenden wir die Dauer in Jahren.   
+
+## Verteilung der Abschlusszeiten
+
+Auf Ebene des gesamten Datensatzes stellt sich die Verteilung der Abschlusszeiten
+wie folgt dar.
+
+```{r, echo=FALSE}
+
+summary(data_final$close_time_years, digits = 2) %>% 
+  as.matrix() %>% 
+  t() %>% 
+  kable("latex", booktabs = T, caption = "Zusammenfassung Variable Abschlusszeit in Jahren")%>%
+  kable_styling(position = "center", latex_options = "hold_position")
+
+```
+
+Diese Zusammenfasung zeigt, dass am Landesgericht in Bozen derzeit 265 Konkursfälle noch nicht abgeschlossen
+sind und diese daher keine Abschlusszeit haben.
+
+
+
+```{r, echo=FALSE, fig.align="center", fig.cap="\\label{vert_clos}Verteilung Abschlusszeit eines Konkurses"}
+
+hist(data_final$close_time_years, breaks = 30, main = "",
+     ylab = "Anzahl", xlab = "Zeit in Jahren", col = "lightblue")
+abline(v = mean(data_final$close_time_years, na.rm = T), col = "red", lty = 2, lwd = 2)
+abline(v = median(data_final$close_time_years, na.rm = T), col = "orange", lty = 2, lwd = 2)
+legend("topright", 
+       c("Durchschnitt", "Median"), 
+       lty=c(2, 2), 
+       col=c("red","orange"),
+       lwd = c(2,2), 
+       bty = "n",
+       cex = 0.75)
+
+```
+
+In Abbildung \ref{vert_clos} wird die Verteilung der Abschlusszeit der Konkurse in 
+Südtirol abgebildet.  
+
+## Durchschnittliche Abschlusszeit im Zeitverlauf
+
+Im nächsten Schritt wollen wir zeigen, wie sich die durchschnittliche Abschlusszeit
+über die Jahre verändert hat. Dafür wird die durchschnittliche Abschlusszeit für jedes
+Jahr berechnet. Relevant ist dabei das Abschlussjahr, d.h. die Daten zeigen die Verteilung
+im jeweiligen Abschlussjahr an.  
+
+```{r, echo=FALSE, fig.align="center", fig.cap="\\label{close_time} Durchschnittliche Abschlusszeit"}
+
+avg_close_time <- data_final %>%
+  filter(Stato == "C") %>%
+  group_by(year_close) %>%
+  summarise(avg_time = mean(close_time_years)) %>%
+  select(year_close, avg_time)
+
+par(mar = c(3.1, 4.1, 3.1, 2.1))
+plot(avg_close_time$avg_time ~ avg_close_time$year_close,  
+     type = "b", pch = 1, col = "steelblue", lwd = 2, xlab = "Jahre", ylab = "Durch. Abschlusszeit in Jahren")
+grid()
+
+```
+
+Abbildung \ref{close_time} zeigt die Veränderung der durchschnittlichen Abschlusszeit
+über die Jahre hinweg. Der nächste Schritt analysiert nicht nur den Mittelwert über
+die Zeit, sondern die gesamte Verteilung über die Zeit. Dazu verwenden wir ein
+*Violinendiagramm* in Abbildung \ref{dist_close_time} zur Darstellung der Verteilung im 
+Zeitablauf^[Der rote Punkt entspricht dem Mittelwert und der orange Punkt entspricht dem Median].
+
+```{r, echo=FALSE, fig.align="center", fig.cap="\\label{dist_close_time}Verteilung durchschnittliche Abschlusszeit"}
+
+violine <- data_final %>%
+  filter(Stato == "C") %>%
+  mutate(year_close = as.factor(year_close)) %>%
+  filter(!is.na(year_close)) %>%
+  filter(!is.na(close_time_years)) %>%
+  select(year_close, close_time_years)
+
+p <- ggplot(violine, aes(x=year_close, y=close_time_years, color = year_close)) + 
+  geom_violin(show.legend = FALSE) +
+  labs(x = "Jahre") +
+  labs(y = "Abschlusszeit in Jahren") +
+  labs(title = "Verteilung der Abschlusszeit 2009 - 2019") +
+  stat_summary(fun.y=mean, geom="point", size=2, color="red") +
+  stat_summary(fun.y=median, geom="point", size=2, color="orange") +
+  theme_minimal()
+p
+
+
+```
+
+\newpage
+
+# Richter und Konkursverwalter
+
+Im letzten Abschnitt werden einige Daten zu Richtern und Konkursverwaltern 
+präsentiert, welche die die jährlichen Konkurseröffnungen im Zeitraum
+`r min(data_final$year_dich)` - `r max(data_final$year_dich)` betreuen.
+
+## Richter am Gericht Bozen
+
+Im genannten Zeitraum waren am Landesgericht in Bozen `r length(unique(data_final$Giudice.Delegato))`
+Konkursrichter tätig. Die Verteilung der Fälle setzt sich dabei wie folgt zusammen.
+
+```{r, echo=FALSE}
+judge_year_tot <- data_final %>% 
+  group_by(Giudice.Delegato) %>% 
+  tally()
+
+kable(judge_year_tot, "latex", booktabs = T, caption = "Richter und Konkursverfahren") %>%
+  kable_styling(position = "center", latex_options = "hold_position")
+
+```
+
+## Konkursverwalter
+
+Im gleichen Zeitraum waren `r length(unique(data_final$Curatore))` Konkursverwalter tätig,
+welche je einen der Konkursfälle betreut haben.   
+
+In diesem Zusammenhang stellt sich die Frage, wie viele Mandate ein Konkursverwalter
+betreut. Dafür schauen wir uns die Verteilung der Mandate in Abbildung \ref{curator} an.
+
+```{r, echo=FALSE}
+
+curators_year_tot <- data_final %>% 
+  group_by(Curatore) %>% 
+  tally() %>%
+  arrange(desc(n))
+
+
+summary(curators_year_tot$n, digits = 2) %>% 
+  as.matrix() %>% 
+  t() %>% 
+  kable("latex", booktabs = T, caption = "Zusammenfassung Variable Mandate Verwalter")%>%
+  kable_styling(position = "center", latex_options = "hold_position")
+
+```
+
+
+```{r, echo=FALSE, fig.align="center", fig.cap="\\label{curator}Verteilung Mandate Verwalter"}
+
+hist(curators_year_tot$n, breaks = 15, xlab = "Anzahl Mandate", ylab = "Häufigkeit", main = "",
+     col = "lightblue")
+abline(v = mean(curators_year_tot$n, na.rm = T), col = "red", lty = 2, lwd = 2)
+abline(v = median(curators_year_tot$n, na.rm = T), col = "orange", lty = 2, lwd = 2)
+legend("topright", 
+       c("Durchschnitt", "Median"), 
+       lty=c(2, 2), 
+       col=c("red","orange"),
+       lwd = c(2,2), 
+       bty = "n",
+       cex = 0.75)
+
+```
+
+Als nächster Schritt wollen wir wissen, wie sich die durchschnittliche Dauer
+eines Konkursfalles für die Konkursverwalter darstellt. In der folgenden Tabelle
+werden nur Verwalter berücksichtigt, die mindestens 10 Fälle betreut haben.   
+
+
+```{r, echo=FALSE}
+avg_close_time_curator <- data_final %>%
+  filter(Stato == "C") %>%
+  group_by(Curatore) %>%
+  summarise(avg_time = mean(close_time_years)) %>%
+  select(Curatore, avg_time) %>%
+  arrange(desc(avg_time))
+
+curatore_final <- left_join(avg_close_time_curator, 
+                            curators_year_tot, 
+                            by = "Curatore") %>%
+  filter(n > 10) %>%
+  filter(!is.na(avg_time)) %>%
+  arrange(desc(avg_time))
+
+kable(curatore_final, "latex", booktabs = T, caption = "Durch. Abschlusszeit Verwalter", digits = 2) %>%
+  kable_styling(position = "center", latex_options = "hold_position")
+
+```
+
+# Zusammenfassung
+
